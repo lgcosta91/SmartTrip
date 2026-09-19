@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Função auxiliar: valida se o solicitante está autenticado
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Função auxiliar: valida se o solicitante é o proprietário do documento
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Função auxiliar: valida se o campo userId enviado confere com o solicitante
+    function incomingUserIdIsCurrent() {
+      return request.resource.data.userId == request.auth.uid;
+    }
+
+    // 1. Coleção de Usuários (/users/{userId})
+    match /users/{userId} {
+      allow read: if isOwner(userId) || (isAuthenticated() && request.auth.token.role == 'admin');
+      allow create: if isOwner(userId) && request.resource.data.role == 'user';
+      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
+      allow delete: if false; // Exclusão de contas somente via fluxo administrativo/GDPR
+    }
+
+    // 2. Coleção de Folgas (/timeOffs/{timeOffId})
+    match /timeOffs/{timeOffId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && incomingUserIdIsCurrent();
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && incomingUserIdIsCurrent();
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // 3. Coleção de Viagens (/trips/{tripId})
+    match /trips/{tripId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && incomingUserIdIsCurrent();
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && incomingUserIdIsCurrent();
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Bloqueio explícito para qualquer outra rota não mapeada
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

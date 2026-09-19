@@ -1,0 +1,7 @@
+{
+  "name": "SmartTrip",
+  "description": "Concierge e planejador de viagens inteligente com itinerários gerados por IA, exploração de destinos, colaboração em tempo real e reservas integradas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
